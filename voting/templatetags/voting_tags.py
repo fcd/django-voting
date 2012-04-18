@@ -7,77 +7,6 @@ register = template.Library()
 
 # Tags
 
-class ScoreForObjectNode(template.Node):
-    def __init__(self, object, context_var):
-        self.object = object
-        self.context_var = context_var
-
-    def render(self, context):
-        try:
-            object = template.resolve_variable(self.object, context)
-        except template.VariableDoesNotExist:
-            return ''
-        context[self.context_var] = Vote.objects.get_score(object)
-        return ''
-
-class ScoresForObjectsNode(template.Node):
-    def __init__(self, objects, context_var):
-        self.objects = objects
-        self.context_var = context_var
-
-    def render(self, context):
-        try:
-            objects = template.resolve_variable(self.objects, context)
-        except template.VariableDoesNotExist:
-            return ''
-        context[self.context_var] = Vote.objects.get_scores_in_bulk(objects)
-        return ''
-
-class VoteByUserNode(template.Node):
-    def __init__(self, user, object, context_var):
-        self.user = user
-        self.object = object
-        self.context_var = context_var
-
-    def render(self, context):
-        try:
-            user = template.resolve_variable(self.user, context)
-            object = template.resolve_variable(self.object, context)
-        except template.VariableDoesNotExist:
-            return ''
-        context[self.context_var] = Vote.objects.get_for_user(object, user)
-        return ''
-
-class VotesByUserNode(template.Node):
-    def __init__(self, user, objects, context_var):
-        self.user = user
-        self.objects = objects
-        self.context_var = context_var
-
-    def render(self, context):
-        try:
-            user = template.resolve_variable(self.user, context)
-            objects = template.resolve_variable(self.objects, context)
-        except template.VariableDoesNotExist:
-            return ''
-        context[self.context_var] = Vote.objects.get_for_user_in_bulk(objects, user)
-        return ''
-
-class DictEntryForItemNode(template.Node):
-    def __init__(self, item, dictionary, context_var):
-        self.item = item
-        self.dictionary = dictionary
-        self.context_var = context_var
-
-    def render(self, context):
-        try:
-            dictionary = template.resolve_variable(self.dictionary, context)
-            item = template.resolve_variable(self.item, context)
-        except template.VariableDoesNotExist:
-            return ''
-        context[self.context_var] = dictionary.get(item.id, None)
-        return ''
-
 def do_score_for_object(parser, token):
     """
     Retrieves the total score for an object and the number of votes
@@ -98,6 +27,21 @@ def do_score_for_object(parser, token):
         raise template.TemplateSyntaxError("second argument to '%s' tag must be 'as'" % bits[0])
     return ScoreForObjectNode(bits[1], bits[3])
 
+
+class ScoreForObjectNode(template.Node):
+    def __init__(self, object, context_var):
+        self.object = object
+        self.context_var = context_var
+
+    def render(self, context):
+        try:
+            object = template.resolve_variable(self.object, context)
+        except template.VariableDoesNotExist:
+            return ''
+        context[self.context_var] = Vote.objects.get_score(object)
+        return ''
+
+
 def do_scores_for_objects(parser, token):
     """
     Retrieves the total scores for a list of objects and the number of
@@ -113,6 +57,21 @@ def do_scores_for_objects(parser, token):
     if bits[2] != 'as':
         raise template.TemplateSyntaxError("second argument to '%s' tag must be 'as'" % bits[0])
     return ScoresForObjectsNode(bits[1], bits[3])
+
+
+class ScoresForObjectsNode(template.Node):
+    def __init__(self, objects, context_var):
+        self.objects = objects
+        self.context_var = context_var
+
+    def render(self, context):
+        try:
+            objects = template.resolve_variable(self.objects, context)
+        except template.VariableDoesNotExist:
+            return ''
+        context[self.context_var] = Vote.objects.get_scores_in_bulk(objects)
+        return ''
+
 
 def do_vote_by_user(parser, token):
     """
@@ -133,6 +92,23 @@ def do_vote_by_user(parser, token):
         raise template.TemplateSyntaxError("fourth argument to '%s' tag must be 'as'" % bits[0])
     return VoteByUserNode(bits[1], bits[3], bits[5])
 
+
+class VoteByUserNode(template.Node):
+    def __init__(self, user, object, context_var):
+        self.user = user
+        self.object = object
+        self.context_var = context_var
+
+    def render(self, context):
+        try:
+            user = template.resolve_variable(self.user, context)
+            object = template.resolve_variable(self.object, context)
+        except template.VariableDoesNotExist:
+            return ''
+        context[self.context_var] = Vote.objects.get_for_user(object, user)
+        return ''
+
+
 def do_votes_by_user(parser, token):
     """
     Retrieves the votes cast by a user on a list of objects as a
@@ -151,6 +127,23 @@ def do_votes_by_user(parser, token):
     if bits[4] != 'as':
         raise template.TemplateSyntaxError("fourth argument to '%s' tag must be 'as'" % bits[0])
     return VotesByUserNode(bits[1], bits[3], bits[5])
+
+
+class VotesByUserNode(template.Node):
+    def __init__(self, user, objects, context_var):
+        self.user = user
+        self.objects = objects
+        self.context_var = context_var
+
+    def render(self, context):
+        try:
+            user = template.resolve_variable(self.user, context)
+            objects = template.resolve_variable(self.objects, context)
+        except template.VariableDoesNotExist:
+            return ''
+        context[self.context_var] = Vote.objects.get_for_user_in_bulk(objects, user)
+        return ''
+
 
 def do_dict_entry_for_item(parser, token):
     """
@@ -172,6 +165,23 @@ def do_dict_entry_for_item(parser, token):
     if bits[4] != 'as':
         raise template.TemplateSyntaxError("fourth argument to '%s' tag must be 'as'" % bits[0])
     return DictEntryForItemNode(bits[1], bits[3], bits[5])
+
+
+class DictEntryForItemNode(template.Node):
+    def __init__(self, item, dictionary, context_var):
+        self.item = item
+        self.dictionary = dictionary
+        self.context_var = context_var
+
+    def render(self, context):
+        try:
+            dictionary = template.resolve_variable(self.dictionary, context)
+            item = template.resolve_variable(self.item, context)
+        except template.VariableDoesNotExist:
+            return ''
+        context[self.context_var] = dictionary.get(item.id, None)
+        return ''
+
 
 register.tag('score_for_object', do_score_for_object)
 register.tag('scores_for_objects', do_scores_for_objects)
