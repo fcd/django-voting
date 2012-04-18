@@ -6,7 +6,7 @@ from voting.models import Vote
 register = template.Library()
 
 # Tags
-
+@register.tag(name='score_for_object')
 def do_score_for_object(parser, token):
     """
     Retrieves the total score for an object and the number of votes
@@ -41,7 +41,7 @@ class ScoreForObjectNode(template.Node):
         context[self.context_var] = Vote.objects.get_score(object)
         return ''
 
-
+@register.tag(name='scores_for_object')
 def do_scores_for_objects(parser, token):
     """
     Retrieves the total scores for a list of objects and the number of
@@ -72,7 +72,7 @@ class ScoresForObjectsNode(template.Node):
         context[self.context_var] = Vote.objects.get_scores_in_bulk(objects)
         return ''
 
-
+@register.tag(name='vote_by_user')
 def do_vote_by_user(parser, token):
     """
     Retrieves the ``Vote`` cast by a user on a particular object and
@@ -108,7 +108,7 @@ class VoteByUserNode(template.Node):
         context[self.context_var] = Vote.objects.get_for_user(object, user)
         return ''
 
-
+@register.tag(name='votes_by_user')
 def do_votes_by_user(parser, token):
     """
     Retrieves the votes cast by a user on a list of objects as a
@@ -145,6 +145,7 @@ class VotesByUserNode(template.Node):
         return ''
 
 
+@register.tag(name='dict_entry_for_item')
 def do_dict_entry_for_item(parser, token):
     """
     Given an object and a dictionary keyed with object ids - as
@@ -183,14 +184,8 @@ class DictEntryForItemNode(template.Node):
         return ''
 
 
-register.tag('score_for_object', do_score_for_object)
-register.tag('scores_for_objects', do_scores_for_objects)
-register.tag('vote_by_user', do_vote_by_user)
-register.tag('votes_by_user', do_votes_by_user)
-register.tag('dict_entry_for_item', do_dict_entry_for_item)
-
 # Simple Tags
-
+@register.simple_tag
 def confirm_vote_message(object_description, vote_direction):
     """
     Creates an appropriate message asking the user to confirm the given vote
@@ -206,10 +201,9 @@ def confirm_vote_message(object_description, vote_direction):
         message = 'Confirm <strong>%s</strong> vote for <strong>%%s</strong>.' % vote_direction
     return message % (escape(object_description),)
 
-register.simple_tag(confirm_vote_message)
 
 # Filters
-
+@register.filter
 def vote_display(vote, arg=None):
     """
     Given a string mapping values for up and down votes, returns one
@@ -237,5 +231,3 @@ def vote_display(vote, arg=None):
     if vote.vote == 1:
         return up
     return down
-
-register.filter(vote_display)
