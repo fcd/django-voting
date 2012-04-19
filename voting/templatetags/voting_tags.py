@@ -30,16 +30,17 @@ def do_score_for_object(parser, token):
 
 class ScoreForObjectNode(template.Node):
     def __init__(self, object, context_var):
-        self.object = object
+        self.object = template.Variable(object)
         self.context_var = context_var
 
     def render(self, context):
         try:
-            object = template.resolve_variable(self.object, context)
+            object = self.object.resolve(context)
+            context[self.context_var] = Vote.objects.get_score(object)
         except template.VariableDoesNotExist:
+            pass
+        finally:
             return ''
-        context[self.context_var] = Vote.objects.get_score(object)
-        return ''
 
 @register.tag(name='scores_for_object')
 def do_scores_for_objects(parser, token):
@@ -61,16 +62,18 @@ def do_scores_for_objects(parser, token):
 
 class ScoresForObjectsNode(template.Node):
     def __init__(self, objects, context_var):
-        self.objects = objects
+        self.objects = template.Variable(objects)
         self.context_var = context_var
 
     def render(self, context):
         try:
-            objects = template.resolve_variable(self.objects, context)
+            objects = self.objects.resolve(context)
+            context[self.context_var] = Vote.objects.get_scores_in_bulk(objects)
         except template.VariableDoesNotExist:
+            pass
+        finally:
             return ''
-        context[self.context_var] = Vote.objects.get_scores_in_bulk(objects)
-        return ''
+
 
 @register.tag(name='vote_by_user')
 def do_vote_by_user(parser, token):
@@ -95,18 +98,20 @@ def do_vote_by_user(parser, token):
 
 class VoteByUserNode(template.Node):
     def __init__(self, user, object, context_var):
-        self.user = user
-        self.object = object
+        self.user = template.Variable(user)
+        self.object = template.Variable(object)
         self.context_var = context_var
 
     def render(self, context):
         try:
-            user = template.resolve_variable(self.user, context)
-            object = template.resolve_variable(self.object, context)
+            user = self.user.resolve(context)
+            object = self.object.resolve(context)
+            context[self.context_var] = Vote.objects.get_for_user(object, user)
         except template.VariableDoesNotExist:
+            pass
+        finally:
             return ''
-        context[self.context_var] = Vote.objects.get_for_user(object, user)
-        return ''
+
 
 @register.tag(name='votes_by_user')
 def do_votes_by_user(parser, token):
@@ -131,18 +136,19 @@ def do_votes_by_user(parser, token):
 
 class VotesByUserNode(template.Node):
     def __init__(self, user, objects, context_var):
-        self.user = user
-        self.objects = objects
+        self.user = template.Variable(user)
+        self.objects = template.Variable(objects)
         self.context_var = context_var
 
     def render(self, context):
         try:
-            user = template.resolve_variable(self.user, context)
-            objects = template.resolve_variable(self.objects, context)
+            user = self.user.resolve(context)
+            objects = self.objects.resolve(context)
+            context[self.context_var] = Vote.objects.get_for_user_in_bulk(objects, user)
         except template.VariableDoesNotExist:
+            pass
+        finally:
             return ''
-        context[self.context_var] = Vote.objects.get_for_user_in_bulk(objects, user)
-        return ''
 
 
 @register.tag(name='dict_entry_for_item')
@@ -170,18 +176,19 @@ def do_dict_entry_for_item(parser, token):
 
 class DictEntryForItemNode(template.Node):
     def __init__(self, item, dictionary, context_var):
-        self.item = item
-        self.dictionary = dictionary
+        self.item = template.Variable(item)
+        self.dictionary = template.Variable(dictionary)
         self.context_var = context_var
 
     def render(self, context):
         try:
-            dictionary = template.resolve_variable(self.dictionary, context)
-            item = template.resolve_variable(self.item, context)
+            dictionary = self.dictionary.resolve(context)
+            item = self.item.resolve(context)
+            context[self.context_var] = dictionary.get(item.id, None)
         except template.VariableDoesNotExist:
+            pass
+        finally:
             return ''
-        context[self.context_var] = dictionary.get(item.id, None)
-        return ''
 
 
 # Simple Tags
