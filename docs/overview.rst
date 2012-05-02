@@ -160,8 +160,8 @@ The following sample URLconf demonstrates a basic usage of these generic views:
     from shop.apps.products.models import Widget
 
     urlpatterns = patterns('',
-        (r'^widgets/(?P<object_id>\d+)/vote/(?P<direction>up|down|clear)/$',  RecordVoteOnItemView.as_view(model=Widget), 'widget_record_vote'),
-        (r'^widgets/(?P<object_id>\d+)/vote/confirm/(?P<direction>up|down|clear)/$', ConfirmVoteOnItemView.as_view(model=Widget), 'widget_confirm_vote'),
+        (r'^widgets/(?P<pk>\d+)/vote/(?P<direction>up|down|clear)/$',  RecordVoteOnItemView.as_view(model=Widget), 'widget_record_vote'),
+        (r'^widgets/(?P<pk>\d+)/vote/confirm/(?P<direction>up|down|clear)/$', ConfirmVoteOnItemView.as_view(model=Widget), 'widget_confirm_vote'),
     )
 
 
@@ -176,7 +176,7 @@ The following sample URLconf demonstrates a basic usage of these generic views:
     relies on the lookup logic provided by the built-in ``DetailView`` view.  In order for this lookup procedure to
     work, the view must receive either of these keyword arguments:
 
-    * ``object_id``: the value of the primary-key field for the object being voted on
+    * ``pk``: the value of the primary-key field for the object being voted on
     * ``slug``: the slug of the object being voted on
 
     If the ``slug`` parameter is used to identify the object, the view assumes that the corresponding model declares a
