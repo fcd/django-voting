@@ -1,7 +1,7 @@
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic import View, DetailView
 from django.utils.decorators import method_decorator
-from django.http import HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotAllowed
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.utils import simplejson as json
 
 from django.contrib.auth.decorators import login_required
@@ -97,7 +97,7 @@ class RecordVoteOnItemView(SingleObjectMixin, View):
             vote = self.VOTE_DIRECTIONS[self.kwargs['direction']]
         except KeyError:
             direction = self.kwargs.get('direction', None)
-            if self.request.is_ajax:
+            if self.request.is_ajax():
                 self.get_json_response(err_msg="\'%s\' is not a valid vote type." % direction)
             else:
                 return HttpResponseBadRequest("'%s' is not a valid vote type." % direction)
@@ -105,8 +105,8 @@ class RecordVoteOnItemView(SingleObjectMixin, View):
         self.object = self.get_object()
         # record user-casted vote
         Vote.objects.record_vote(self.object, self.request.user, vote)
-        if self.request.is_ajax:
-            return self.get_json_response()
+        if self.request.is_ajax():
+            return HttpResponse(self.get_json_response())
         else:
             return HttpResponseRedirect(self.get_success_url())
 
