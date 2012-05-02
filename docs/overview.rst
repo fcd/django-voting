@@ -65,7 +65,7 @@ Methods
 Manager functions
 ~~~~~~~~~~~~~~~~~
 
-The ``Vote`` model has a custom manager that has the following helper
+The ``Vote`` model has a custom manager exposing the following helper
 functions:
 
     * ``record_vote(obj, user, vote)`` -- Record a user's vote on a
@@ -146,154 +146,86 @@ is either modified or deleted, as appropriate::
 Generic Views
 =============
 
-The ``voting.views`` module contains views to handle a couple of
-common cases: displaying a page to confirm a vote when it is requested
-via ``GET`` and making the vote itself via ``POST``, or voting via
-XMLHttpRequest ``POST``.
+The ``voting.views`` module contains two views:
 
-The following sample URLconf demonstrates using a generic view for
-voting on a model, allowing for regular voting and XMLHttpRequest
-voting at the same URL::
+* :py:class:`RecordVoteOnItemView` processes vote requests issued by users, redirecting to another URL on success
+* :py:class:`ConfirmVoteOnItemView` just displays a confirmation page when a vote request has been successfully processed
+
+The following sample URLconf demonstrates a basic usage of these generic views:
+
+.. sourcecode:: python
 
     from django.conf.urls.defaults import *
-    from voting.views import vote_on_object
+    from voting.views import  RecordVoteOnItemView, ConfirmVoteOnItemView
     from shop.apps.products.models import Widget
 
-    widget_dict = {
-        'model': Widget,
-        'template_object_name': 'widget',
-        'allow_xmlhttprequest': True,
-    }
-
     urlpatterns = patterns('',
-        (r'^widgets/(?P<object_id>\d+)/(?P<direction>up|down|clear)vote/?$', vote_on_object, widget_dict),
+        (r'^widgets/(?P<pk>\d+)/vote/(?P<direction>up|down|clear)/$',  RecordVoteOnItemView.as_view(model=Widget), 'widget_record_vote'),
+        (r'^widgets/(?P<pk>\d+)/vote/confirm/(?P<direction>up|down|clear)/$', ConfirmVoteOnItemView.as_view(model=Widget), 'widget_confirm_vote'),
     )
 
-``voting.views.vote_on_object``
---------------------------------
 
-**Description:**
+.. py:class:: RecordVoteOnItemView
 
-A view that displays a confirmation page and votes on an object. The
-given object will only be voted on if the request method is ``POST``.
-If this view is fetched via ``GET``, it will display a confirmation
-page that should contain a form that ``POST``\s to the same URL.
+    Records the vote casted by the current (authenticated) user on a given model instance.
+    
+    Note that this is an abstract view, intended to be subclassed in order to make a given data model "votable". To do
+    so, just set the ``model`` class attribute to the Django model's class whose instances have to be made votable.
+    
+    The model instance to be voted against is retrieved by the ``get_object()`` method.  The default implementation
+    relies on the lookup logic provided by the built-in ``DetailView`` view.  In order for this lookup procedure to
+    work, the view must receive either of these keyword arguments:
 
-**Required arguments:**
+    * ``pk``: the value of the primary-key field for the object being voted on
+    * ``slug``: the slug of the object being voted on
 
-    * ``model``: The Django model class of the object that will be
-      voted on.
+    If the ``slug`` parameter is used to identify the object, the view assumes that the corresponding model declares a
+    ``SlugField`` named ``slug``.  If your model's slug field is named otherwise, be sure to set the ``slug_field``
+    class attribute to the proper value.
 
-    * Either ``object_id`` or (``slug`` *and* ``slug_field``) is
-      required.
+    Moreover, the ``direction`` keyword argument must contain the kind of vote to be made (one of ``up``, ``down`` or
+    ``clear``).
+   
+    After a (regular HTTP) vote request has been successfully processed, the view redirects the client to the URL
+    returned by the ``get_success_url()`` method.  The default implementation of ``get_success_url()`` looks for the
+    success URL in the following places, in order:
+      
+      * the ``post_vote_redirect`` class attribute, if set 
+      * the ``next`` parameter of the incoming HTTP request, if any
+      * the ``get_absolute_url()`` method of the object returned by the ``get_object()`` method
+   
+    If this strategy doesn't fit your needs, just override ``get_success_url()`` in concrete subclass.
+    
+    If instead the vote request is performed via AJAX, a JSON object is returned to the client by the
+    ``get_json_response()`` method.  The default implementation build an object with the following properties:
+    
+    * ``success``: ``true`` if the vote was successfully registered, ``false`` otherwise
+    * ``score``: an object having the properties ``score`` (the updated score for the given object) 
+       and ``num_votes`` (the number of votes casted on the given object)
+    * ``error_message``: a message describing an error condition occurred while processing the vote 
 
-      If you provide ``object_id``, it should be the value of the
-      primary-key field for the object being voted on.
+.. py:class:: ConfirmVoteOnItemView
 
-      Otherwise, ``slug`` should be the slug of the given object, and
-      ``slug_field`` should be the name of the slug field in the
-      ``QuerySet``'s model.
-
-    * ``direction``: The kind of vote to be made, must be one of
-      ``'up'``, ``'down'`` or ``'clear'``.
-
-    * Either a ``post_vote_redirect`` argument defining a URL must
-      be supplied, or a ``next`` parameter must supply a URL in the
-      request when the vote is ``POST``\ed, or the object being voted
-      on must define a ``get_absolute_url`` method or property.
-
-      The view checks for these in the order given above.
-
-**Optional arguments:**
-
-    * ``allow_xmlhttprequest``: A boolean that designates whether this
-      view should also allow votes to be made via XMLHttpRequest.
-
-      If this is ``True``, the request headers will be check for an
-      ``HTTP_X_REQUESTED_WITH`` header which has a value of
-      ``XMLHttpRequest``. If this header is found, processing of the
-      current request is delegated to
-      ``voting.views.xmlhttprequest_vote_on_object``.
-
-    * ``template_name``: The full name of a template to use in
-      rendering the page. This lets you override the default template
-      name (see below).
-
-    * ``template_loader``: The template loader to use when loading the
-      template. By default, it's ``django.template.loader``.
-
-    * ``extra_context``: A dictionary of values to add to the template
-      context. By default, this is an empty dictionary. If a value in
-      the dictionary is callable, the generic view will call it just
-      before rendering the template.
-
-    * ``context_processors``: A list of template-context processors to
-      apply to the view's template.
-
-    * ``template_object_name``:  Designates the name of the template
-      variable to use in the template context. By default, this is
-      ``'object'``.
-
-**Template name:**
-
-If ``template_name`` isn't specified, this view will use the template
-``<app_label>/<model_name>_confirm_vote.html`` by default.
-
-**Template context:**
-
-In addition to ``extra_context``, the template's context will be:
-
-    * ``object``: The original object that's about to be voted on.
-      This variable's name depends on the ``template_object_name``
-      parameter, which is ``'object'`` by default. If
-      ``template_object_name`` is ``'foo'``, this variable's name will
-      be ``foo``.
-
-    * ``direction``: The argument which was given for the vote's
-      ``direction`` (see above).
-
-``voting.views.xmlhttprequest_vote_on_object``
------------------------------------------------
-
-**Description:**
-
-A view for use in voting on objects via XMLHttpRequest. The given
-object will only be voted on if the request method is ``POST``. This
-view will respond with JSON text instead of rendering a template or
-redirecting.
-
-**Required arguments:**
-
-    * ``model``: The Django model class of the object that will be
-      voted on.
-
-    * Either ``object_id`` or (``slug`` *and* ``slug_field``) is
-      required.
-
-      If you provide ``object_id``, it should be the value of the
-      primary-key field for the object being voted on.
-
-      Otherwise, ``slug`` should be the slug of the given object, and
-      ``slug_field`` should be the name of the slug field in the
-      ``QuerySet``'s model.
-
-    * ``direction``: The kind of vote to be made, must be one of
-      ``'up'``, ``'down'`` or ``'clear'``.
-
-**JSON text context:**
-
-The context provided by the JSON text returned will be:
-
-    * ``success``: ``true`` if the vote was successfully processed,
-      ``false`` otherwise.
-
-    * ``score``: an object containing a ``score`` property, which
-      holds the object's updated score, and a ``num_votes`` property,
-      which holds the total number of votes cast for the object.
-
-    * ``error_message``: if the vote was not successfully processed,
-      this property will contain an error message.
-
+    Display a confirmation message when a voting request has been successfully processed.
+    
+    When rendering the confirmation page, these template names will be tried, in order:
+    
+    * the string provided by the ``template_name`` class attribute, if present
+     
+    * ``<app label>/<model name>_<template_name_suffix>.html``, where:
+    
+        * ``<app label>`` and ``<model name>`` refer to the (required) ``model`` class attribute
+        * ``<template_name_suffix>`` is the value (default: ``_confirm_vote``) of the  
+          ``template_name_suffix`` class attribute
+     
+    This view adds the following variable to the template context:
+    
+    * ``object``: the object being voted upon.  You can change this default by overriding the 
+      ``template_object_name`` class attribute
+    * ``direction``: the vote's direction (one of 'up', 'down', 'clear')
+    
+    As usual, you can build a different context by providing a custom implementation of the 
+    ``get_context_data()`` method.
 
 Template tags
 =============
