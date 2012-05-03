@@ -89,8 +89,7 @@ class RecordVoteOnItemView(SingleObjectMixin, View):
         return data
 
     def get(self, request, *args, **kwargs):
-        msg = "Votes on %s objects can only be issued via POST" % self.model._meta.object_name
-        return HttpResponseNotAllowed(msg)
+        return HttpResponseNotAllowed(['POST'])
     
     def post(self, request, *args, **kwargs):
         try:
