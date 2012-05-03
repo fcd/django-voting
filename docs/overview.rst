@@ -262,6 +262,21 @@ Example usage::
 
     {% scores_for_objects widget_list as scores %}
 
+votes_for_object
+~~~~~~~~~~~~~~~~
+
+Retrieves the number of up-votes and down-votes for a given object and stores them in a context variable having ``upvotes`` and
+``downvotes`` attributes.
+
+Example usage::
+
+
+   {% votes_for_object widget as widget_votes %}
+
+   Widget {{ widget }} has been given {{ widget_votes.upvotes }} positive vote{{ widget_votes.upvotes|pluralize }} and 
+   {{ widget_votes.downvotes }} negative vote{{ widget_votes.downvotes|pluralize }}.
+
+
 vote_by_user
 ~~~~~~~~~~~~
 
@@ -299,7 +314,7 @@ Example usage::
 confirm_vote_message
 ~~~~~~~~~~~~~~~~~~~~
 
-Intended for use in vote confirmatio templates, creates an appropriate
+Intended for use in vote confirmation templates, creates an appropriate
 message asking the user to confirm the given vote for the given object
 description.
 

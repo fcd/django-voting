@@ -75,6 +75,52 @@ class ScoresForObjectsNode(template.Node):
             return ''
 
 
+@register.tag(name='votes_for_object')
+def do_votes_for_object(parser, token):
+    """
+    Retrieves the number of up-votes and down-votes for a given object and
+    stores them in a context variable having ``upvotes`` and
+    ``downvotes`` attributes.
+
+    Example usage:
+
+    .. sourcecode:: python
+
+        {% votes_for_object widget as widget_votes %}
+
+        Widget {{ widget }} has been given {{ widget_votes.upvotes }} positive vote{{ widget_votes.upvotes|pluralize }} and 
+        {{ widget_votes.downvotes }} negative vote{{ widget_votes.downvotes|pluralize }}
+
+    """
+    bits = token.contents.split()
+    if len(bits) != 4:
+        raise template.TemplateSyntaxError("'%s' tag takes exactly three arguments" % bits[0])
+    if bits[2] != 'as':
+        raise template.TemplateSyntaxError("second argument to '%s' tag must be 'as'" % bits[0])
+    return VotesForObjectNode(bits[1], bits[3])
+
+
+class VotesForObjectNode(template.Node):
+    def __init__(self, object, context_var):
+        self.object = template.Variable(object)
+        self.context_var = context_var
+
+    def render(self, context):
+        try:
+            object = self.object.resolve(context)
+            score_dict = Vote.objects.get_score(object)
+            s = score_dict['score']
+            n = score_dict['num_votes']
+            # Some advanced Maths here :-)
+            upvotes = (n + s) / 2
+            downvotes = (n - s) / 2
+            context[self.context_var] = {'upvotes': upvotes, 'downvotes': downvotes}
+        except template.VariableDoesNotExist:
+            pass
+        finally:
+            return ''
+
+
 @register.tag(name='vote_by_user')
 def do_vote_by_user(parser, token):
     """
