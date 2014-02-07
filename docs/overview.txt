@@ -47,7 +47,8 @@ Fields
 ``Vote`` objects have the following fields:
 
     * ``user`` -- The user who made the vote. Users are represented by
-      the ``django.contrib.auth.models.User`` model.
+      the model returned by ``django.contrib.auth.get_user_model``
+      (Django>=1.5) or ``django.contrib.auth.models.User`` (Django<1.5).
     * ``content_type`` -- The ContentType of the object voted on.
     * ``object_id`` -- The id of the object voted on.
     * ``object`` -- The object voted on.

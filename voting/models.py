@@ -1,8 +1,8 @@
 from datetime import datetime
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.models import User
 from django.db import models
+from voting.compat import User
 
 try:
     from django.utils.timezone import now
