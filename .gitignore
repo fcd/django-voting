@@ -1,3 +1,8 @@
+<<<<<<< HEAD
 ~*
 *.pyc
 docs/_build
+=======
+*.pyc
+*.egg-info
+>>>>>>> 53acdf4f4d3abb293a87e38fcbe1d738b2caea12

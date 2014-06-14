@@ -10,26 +10,26 @@ else:
 
 from django.contrib.contenttypes.models import ContentType
 
+ZERO_VOTES_ALLOWED = getattr(settings, 'VOTING_ZERO_VOTES_ALLOWED', False)
+
 if supports_aggregates:
     class CoalesceWrapper(Aggregate):
         sql_template = 'COALESCE(%(function)s(%(field)s), %(default)s)'
-    
-        def __init__(self, lookup, **extra): 
+
+        def __init__(self, lookup, **extra):
             self.lookup = lookup
             self.extra = extra
-    
+
         def _default_alias(self):
             return '%s__%s' % (self.lookup, self.__class__.__name__.lower())
         default_alias = property(_default_alias)
-    
+
         def add_to_query(self, query, alias, col, source, is_summary):
             super(CoalesceWrapper, self).__init__(col, source, is_summary, **self.extra)
             query.aggregate_select[alias] = self
 
-
     class CoalesceSum(CoalesceWrapper):
         sql_function = 'SUM'
-
 
     class CoalesceCount(CoalesceWrapper):
         sql_function = 'COUNT'
@@ -62,38 +62,38 @@ class VoteManager(models.Manager):
         object_ids = [o._get_pk_val() for o in objects]
         if not object_ids:
             return {}
-        
+
         ctype = ContentType.objects.get_for_model(objects[0])
-        
+
         if supports_aggregates:
             queryset = self.filter(
-                object_id__in = object_ids,
-                content_type = ctype,
+                object_id__in=object_ids,
+                content_type=ctype,
             ).values(
                 'object_id',
             ).annotate(
-                score = CoalesceSum('vote', default='0'),
-                num_votes = CoalesceCount('vote', default='0'),
+                score=CoalesceSum('vote', default='0'),
+                num_votes=CoalesceCount('vote', default='0'),
             )
         else:
             queryset = self.filter(
-                object_id__in = object_ids,
-                content_type = ctype,
+                object_id__in=object_ids,
+                content_type=ctype,
                 ).extra(
-                    select = {
+                    select={
                         'score': 'COALESCE(SUM(vote), 0)',
                         'num_votes': 'COALESCE(COUNT(vote), 0)',
                     }
                 ).values('object_id', 'score', 'num_votes')
             queryset.query.group_by.append('object_id')
-        
+
         vote_dict = {}
         for row in queryset:
             vote_dict[row['object_id']] = {
                 'score': int(row['score']),
                 'num_votes': int(row['num_votes']),
             }
-        
+
         return vote_dict
 
     def record_vote(self, obj, user, vote):
@@ -109,15 +109,16 @@ class VoteManager(models.Manager):
         try:
             v = self.get(user=user, content_type=ctype,
                          object_id=obj._get_pk_val())
-            if vote == 0:
+            if vote == 0 and not ZERO_VOTES_ALLOWED:
                 v.delete()
             else:
                 v.vote = vote
                 v.save()
         except models.ObjectDoesNotExist:
-            if vote != 0:
-                self.create(user=user, content_type=ctype,
-                            object_id=obj._get_pk_val(), vote=vote)
+            if not ZERO_VOTES_ALLOWED and vote == 0:
+                return
+            self.create(user=user, content_type=ctype,
+                        object_id=obj._get_pk_val(), vote=vote)
 
     def get_top(self, Model, limit=10, reversed=False):
         """
