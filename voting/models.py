@@ -2,7 +2,9 @@ from datetime import datetime
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from voting.compat import User
+# This may work after the db is intialized but does not appear to work before
+#from voting.compat import User
+from django.conf import settings
 
 try:
     from django.utils.timezone import now
@@ -22,7 +24,7 @@ class Vote(models.Model):
     """
     A vote on an object by a User.
     """
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     object = generic.GenericForeignKey('content_type', 'object_id')
